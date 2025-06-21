@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SighhShare</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body class="dark-theme">
+    <header>
+        <h1>SighhShare</h1>
+        <button id="theme-toggle" class="material-icons">brightness_4</button>
+    </header>
+
+    <main>
+        <section id="main-upload-section">
+            <div id="upload-box">
+                <div class="upload-icon-container">
+                    <span class="material-icons upload-arrow">file_upload</span>
+                    <p>Click or Drag & Drop to Upload</p>
+                    <input type="file" id="file-input" accept="*/*" style="display: none;">
+                </div>
+                <div class="code-input-container">
+                    <label for="code-input">Code:</label>
+                    <input type="text" id="code-input" placeholder="Enter 5-letter code" maxlength="5">
+                    <button id="retrieve-button">Go</button>
+                </div>
+            </div>
+            <p class="error-message" id="main-error-message"></p>
+        </section>
+
+        <section id="file-display-section" style="display: none;">
+            <div class="file-details-card">
+                <h2 id="file-name-display"></h2>
+                <p>Your sharing code is: <strong id="share-code-display"></strong></p>
+                <div class="expiration-options">
+                    <p>This page will last for:</p>
+                    <button class="exp-button" data-duration="1hr">1 Hour</button>
+                    <button class="exp-button" data-duration="5hr">5 Hours</button>
+                    <button class="exp-button" data-duration="1d">1 Day</button>
+                </div>
+                <button id="download-button">Download File</button>
+                <p class="error-message" id="file-display-error-message"></p>
+                <button id="back-to-main">Back to Upload</button>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 SighhShare. All rights reserved.</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

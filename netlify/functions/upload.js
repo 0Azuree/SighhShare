@@ -1,42 +1,72 @@
-// This is a simplified in-memory store for demonstration.
-// In a real application, you MUST use a persistent database
-// (e.g., FaunaDB, MongoDB Atlas, Firebase Realtime Database, Supabase)
-// to store data across Netlify Function invocations.
-//
-// For a production app, you would connect to your database here.
-// Example: const { Client } = require('faunadb');
-// const q = Client.query;
-// const faunaClient = new Client({ secret: process.env.FAUNADB_SECRET });
+const admin = require('firebase-admin');
 
-const filesData = {}; // Format: { code: { filename, fileUrl, expirationTimestamp, creationTimestamp } }
+// Initialize Firebase Admin SDK
+// This part needs to happen only once across cold starts
+if (!admin.apps.length) {
+    try {
+        admin.initializeApp({
+            credential: admin.credential.cert({
+                type: process.env.FIREBASE_TYPE,
+                project_id: process.env.FIREBASE_PROJECT_ID,
+                private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
+                private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'), // Ensure newlines are correctly parsed
+                client_email: process.env.FIREBASE_CLIENT_EMAIL,
+                client_id: process.env.FIREBASE_CLIENT_ID,
+                auth_uri: process.env.FIREBASE_AUTH_URI,
+                token_uri: process.env.FIREBASE_TOKEN_URI,
+                auth_provider_x509_cert_url: process.env.FIREBASE_AUTH_PROVIDER_X509_CERT_URL,
+                client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL
+            })
+        });
+    } catch (error) {
+        console.error("Firebase Admin SDK initialization error in upload.js:", error);
+    }
+}
 
-// Helper to generate a random 5-letter code
-function generateCode() {
+const db = admin.firestore();
+
+// Function to generate a unique 5-character code
+async function generateUniqueCode() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let code = '';
-    for (let i = 0; i < 5; i++) {
-        code += chars.charAt(Math.floor(Math.random() * chars.length));
+    let isUnique = false;
+    let attempts = 0;
+    const MAX_ATTEMPTS = 10; // Prevent infinite loop in case of extreme collision
+
+    while (!isUnique && attempts < MAX_ATTEMPTS) {
+        code = '';
+        for (let i = 0; i < 5; i++) {
+            code += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+
+        // Check if code already exists in Firestore
+        const docRef = db.collection('files').doc(code);
+        const doc = await docRef.get();
+        if (!doc.exists) {
+            isUnique = true;
+        }
+        attempts++;
+    }
+
+    if (!isUnique) {
+        throw new Error('Could not generate a unique code after multiple attempts.');
     }
     return code;
 }
 
-// Helper to calculate expiration timestamp
-function getExpirationTimestamp(duration) {
-    const now = new Date();
+// Function to calculate expiration timestamp
+function calculateExpirationTimestamp(duration) {
+    const now = Date.now();
+    let expirationTime = now;
+
     switch (duration) {
-        case '1hr':
-            now.setHours(now.getHours() + 1);
-            break;
-        case '5hr':
-            now.setHours(now.getHours() + 5);
-            break;
-        case '1d':
-            now.setDate(now.getDate() + 1);
-            break;
-        default:
-            now.setDate(now.getDate() + 1); // Default to 1 day if invalid duration
+        case '1h': expirationTime += 60 * 60 * 1000; break; // 1 hour
+        case '1d': expirationTime += 24 * 60 * 60 * 1000; break; // 1 day
+        case '1w': expirationTime += 7 * 24 * 60 * 60 * 1000; break; // 1 week
+        // Add more cases as needed (e.g., '1m' for 1 month)
+        default: expirationTime += 24 * 60 * 60 * 1000; // Default to 1 day if unrecognized
     }
-    return now.getTime(); // Returns timestamp in milliseconds
+    return expirationTime;
 }
 
 exports.handler = async (event, context) => {
@@ -44,81 +74,70 @@ exports.handler = async (event, context) => {
         return { statusCode: 405, body: JSON.stringify({ message: 'Method Not Allowed' }) };
     }
 
+    let data;
     try {
-        const { filename, expiration, code, updateExpiration } = JSON.parse(event.body);
+        data = JSON.parse(event.body);
+    } catch (error) {
+        return { statusCode: 400, body: JSON.stringify({ message: 'Invalid JSON body.' }) };
+    }
 
-        if (updateExpiration && code && filesData[code]) {
-            // Logic to update existing file's expiration
-            const fileEntry = filesData[code];
-            fileEntry.expirationTimestamp = getExpirationTimestamp(expiration);
+    const { filename, fileUrl, expiration, code, updateExpiration } = data;
 
-            // In a real DB, you'd update the record here:
-            // await faunaClient.query(
-            //   q.Update(
-            //     q.Match(q.Index('files_by_code'), code),
-            //     { data: { expirationTimestamp: fileEntry.expirationTimestamp } }
-            //   )
-            // );
+    try {
+        let shareCode;
+        let expirationTimestamp;
+        let newFileUrl = fileUrl; // Default to the URL provided in the payload
 
-            console.log(`Expiration updated for code ${code}: ${new Date(fileEntry.expirationTimestamp).toLocaleString()}`);
-            return {
-                statusCode: 200,
-                body: JSON.stringify({ message: 'Expiration updated successfully!', code: code, newExpiration: expiration })
-            };
-        } else if (filename && expiration) {
-            // Logic for a new file upload
-            let newCode;
-            do {
-                newCode = generateCode();
-            } while (filesData[newCode]); // Ensure code is unique
+        if (updateExpiration && code) {
+            // Case 1: Update expiration for an existing file
+            shareCode = code;
+            expirationTimestamp = calculateExpirationTimestamp(expiration);
 
-            // --- IMPORTANT: Real File Storage (Concept) ---
-            // In a real application, the frontend would first upload the actual file
-            // to a cloud storage service (e.g., AWS S3, Cloudinary).
-            // The cloud storage service would return a public URL for that file.
-            // That public URL would then be sent *to this Netlify Function*.
-            //
-            // Example Frontend Flow:
-            // 1. User selects file.
-            // 2. Frontend calls a Netlify Function '/.netlify/functions/get-upload-url'
-            //    to get a secure, temporary URL to upload directly to S3/Cloudinary.
-            // 3. Frontend uploads the file directly to S3/Cloudinary using that URL.
-            // 4. Cloudinary/S3 returns the final public `fileUrl`.
-            // 5. Frontend then calls *this* `upload.js` function, sending `filename`, `fileUrl`, and `expiration`.
-            const dummyFileUrl = `https://dummy-file-storage.com/files/${newCode}/${encodeURIComponent(filename)}`; // Placeholder
+            const docRef = db.collection('files').doc(shareCode);
+            const doc = await docRef.get();
 
-            filesData[newCode] = {
+            if (!doc.exists) {
+                return { statusCode: 404, body: JSON.stringify({ message: 'File not found for update.' }) };
+            }
+
+            // Update only the expirationTimestamp
+            await docRef.update({ expirationTimestamp: expirationTimestamp });
+            console.log(`Updated expiration for code: ${shareCode} to ${new Date(expirationTimestamp).toISOString()}`);
+
+            // Fetch the existing fileUrl to return in the response if it's an update
+            const existingData = doc.data();
+            newFileUrl = existingData.fileUrl; // Use the existing fileUrl for response
+
+        } else if (filename && fileUrl) {
+            // Case 2: New file upload
+            shareCode = await generateUniqueCode();
+            expirationTimestamp = calculateExpirationTimestamp(expiration || '1d'); // Default to 1 day if not provided
+
+            const fileEntry = {
                 filename: filename,
-                fileUrl: dummyFileUrl, // This would be the actual URL from cloud storage
-                expirationTimestamp: getExpirationTimestamp(expiration),
-                creationTimestamp: new Date().getTime()
+                fileUrl: fileUrl, // This is the Cloudinary URL
+                uploadTimestamp: Date.now(),
+                expirationTimestamp: expirationTimestamp
             };
 
-            // In a real DB, you'd create a new record here:
-            // await faunaClient.query(
-            //   q.Create(
-            //     q.Collection('files'),
-            //     { data: filesData[newCode] }
-            //   )
-            // );
+            await db.collection('files').doc(shareCode).set(fileEntry);
+            console.log(`New file uploaded and saved to Firestore with code: ${shareCode}`);
 
-            console.log(`New file: ${filename}, Code: ${newCode}, Expires: ${new Date(filesData[newCode].expirationTimestamp).toLocaleString()}`);
-            console.log('Current filesData (in-memory):', filesData); // For debugging Netlify logs
-
-            return {
-                statusCode: 200,
-                body: JSON.stringify({
-                    code: newCode,
-                    filename: filename,
-                    fileUrl: dummyFileUrl
-                })
-            };
         } else {
-            return { statusCode: 400, body: JSON.stringify({ message: 'Invalid request: Missing filename, expiration, or update parameters.' }) };
+            return { statusCode: 400, body: JSON.stringify({ message: 'Missing filename, fileUrl, or code for update.' }) };
         }
+
+        return {
+            statusCode: 200,
+            body: JSON.stringify({
+                code: shareCode,
+                fileUrl: newFileUrl, // Return the actual fileUrl (either new or existing)
+                expirationTimestamp: expirationTimestamp
+            })
+        };
 
     } catch (error) {
         console.error('Error in upload function:', error);
-        return { statusCode: 500, body: JSON.stringify({ message: 'Internal Server Error', error: error.message }) };
+        return { statusCode: 500, body: JSON.stringify({ message: `Server error: ${error.message}` }) };
     }
 };

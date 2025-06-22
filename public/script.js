@@ -2,21 +2,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const themeToggle = document.getElementById('theme-toggle');
     const uploadBox = document.getElementById('upload-box');
     const fileInput = document.getElementById('file-input');
-    const mainUploadSection = document.getElementById('main-upload-section');
-    const fileDisplaySection = document.getElementById('file-display-section');
-    const fileNameDisplay = document.getElementById('file-name-display');
-    const shareCodeDisplay = document.getElementById('share-code-display');
-    const downloadButton = document.getElementById('download-button');
-    const backToMainButton = document.getElementById('back-to-main');
+    const mainSection = document.getElementById('main-section');
+    const expirationModal = document.getElementById('expiration-modal');
+    const modalFileNameDisplay = document.getElementById('modal-file-name-display');
+    const modalShareCodeDisplay = document.getElementById('modal-share-code-display');
+    const modalDoneButton = document.getElementById('modal-done-button');
+    const modalErrorMessage = document.getElementById('modal-error-message');
+    const fileViewSection = document.getElementById('file-view-section');
+    const finalFileNameDisplay = document.getElementById('final-file-name-display');
+    const finalShareCodeDisplay = document.getElementById('final-share-code-display');
+    const finalDownloadButton = document.getElementById('final-download-button');
+    const fileExpiryInfo = document.getElementById('file-expiry-info');
+    const backToMainFromFileViewButton = document.getElementById('back-to-main-from-file-view');
     const codeInput = document.getElementById('code-input');
     const retrieveButton = document.getElementById('retrieve-button');
     const expirationButtons = document.querySelectorAll('.exp-button');
     const mainErrorMessage = document.getElementById('main-error-message');
-    const fileDisplayErrorMessage = document.getElementById('file-display-error-message');
 
-    let currentFileUrl = ''; // To store the URL of the uploaded/retrieved file
-    let currentShareCode = ''; // To store the generated/retrieved code
-    let selectedExpiration = '1d'; // Default expiration
+    let currentFileUrl = '';
+    let currentShareCode = '';
+    let selectedExpirationDuration = '1d'; // Default to 1 Day
 
     // --- Theme Toggle ---
     const savedTheme = localStorage.getItem('theme');
@@ -42,38 +47,29 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- File Upload ---
+    // --- Upload Box & File Input ---
     uploadBox.addEventListener('click', () => {
-        // Only trigger file input if we are on the main upload section
-        if (mainUploadSection.style.display !== 'none') {
-            fileInput.click();
-        }
+        fileInput.click();
     });
 
     uploadBox.addEventListener('dragover', (e) => {
         e.preventDefault();
-        if (mainUploadSection.style.display !== 'none') {
-            uploadBox.style.borderColor = 'var(--dark-accent)'; // Highlight drag area
-            if (document.body.classList.contains('light-theme')) {
-                 uploadBox.style.borderColor = 'var(--light-accent)';
-            }
+        uploadBox.style.borderColor = 'var(--dark-text)'; // Highlight
+        if (document.body.classList.contains('light-theme')) {
+            uploadBox.style.borderColor = 'var(--light-text)';
         }
     });
 
     uploadBox.addEventListener('dragleave', () => {
-        if (mainUploadSection.style.display !== 'none') {
-            uploadBox.style.borderColor = ''; // Reset border
-        }
+        uploadBox.style.borderColor = ''; // Reset border
     });
 
     uploadBox.addEventListener('drop', (e) => {
         e.preventDefault();
-        if (mainUploadSection.style.display !== 'none') {
-            uploadBox.style.borderColor = ''; // Reset border
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                handleFileUpload(files[0]);
-            }
+        uploadBox.style.borderColor = ''; // Reset border
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            handleFileUpload(files[0]);
         }
     });
 
@@ -90,31 +86,18 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // --- Important: Real-world file upload ---
-        // For actual production, you would upload the file to a cloud storage
-        // like AWS S3, Cloudinary, or Google Cloud Storage first.
-        // This usually involves getting a pre-signed URL from your backend,
-        // then uploading the file directly from the frontend to the cloud.
-        // Once the cloud upload is complete, you'd send the *resulting URL*
-        // to your Netlify function.
-
-        // For this demo, we will simulate by sending just the filename.
-        // The Netlify function will create a dummy URL for demonstration.
-
-        // You might show a loading spinner here
         mainErrorMessage.textContent = 'Uploading file...';
 
         try {
+            // Simplified for demo: only sending filename.
+            // In a real app, you'd upload the file to cloud storage (e.g., S3) first,
+            // then send its resulting URL to the Netlify function.
             const response = await fetch('/api/upload', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     filename: file.name,
-                    // In a real app, 'fileUrl' would come from your cloud storage upload:
-                    // fileUrl: 'https://your-cloud-storage.com/path/to/uploaded/file.ext',
-                    expiration: selectedExpiration // Default expiration is sent initially
+                    expiration: selectedExpirationDuration // Initial default expiration
                 })
             });
 
@@ -124,18 +107,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 mainErrorMessage.textContent = '';
                 currentShareCode = data.code;
                 currentFileUrl = data.fileUrl; // This will be the dummy URL from the backend
-                fileNameDisplay.textContent = data.filename;
-                shareCodeDisplay.textContent = data.code;
-                downloadButton.onclick = () => window.open(currentFileUrl, '_blank');
 
-                // Switch to file display section
-                mainUploadSection.style.display = 'none';
-                fileDisplaySection.style.display = 'block';
-
-                // Reset expiration button highlights
-                expirationButtons.forEach(btn => btn.classList.remove('selected'));
-                document.querySelector(`.exp-button[data-duration="${selectedExpiration}"]`).classList.add('selected');
-
+                // Populate modal and show it
+                modalFileNameDisplay.textContent = data.filename;
+                modalShareCodeDisplay.textContent = data.code;
+                expirationModal.style.display = 'flex';
+                mainSection.style.display = 'none'; // Hide main section
             } else {
                 mainErrorMessage.textContent = `Upload failed: ${data.message || 'Unknown error'}`;
             }
@@ -145,46 +122,54 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- Expiration Buttons ---
+    // --- Expiration Buttons in Modal ---
     expirationButtons.forEach(button => {
-        button.addEventListener('click', async () => {
+        button.addEventListener('click', () => {
             expirationButtons.forEach(btn => btn.classList.remove('selected'));
             button.classList.add('selected');
-            selectedExpiration = button.dataset.duration;
-
-            fileDisplayErrorMessage.textContent = 'Updating expiration...';
-
-            // Now, send this updated expiration to the backend for the current file
-            try {
-                const response = await fetch('/api/upload', { // Reuse upload endpoint, but for update
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        code: currentShareCode, // Send the existing code
-                        expiration: selectedExpiration,
-                        updateExpiration: true // Flag to indicate it's an update
-                    })
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    fileDisplayErrorMessage.textContent = 'Expiration updated!';
-                    // The backend should confirm the new expiration time
-                } else {
-                    fileDisplayErrorMessage.textContent = `Failed to update expiration: ${data.message || 'Unknown error'}`;
-                }
-            } catch (error) {
-                console.error('Error updating expiration:', error);
-                fileDisplayErrorMessage.textContent = 'Network error during expiration update.';
-            } finally {
-                setTimeout(() => fileDisplayErrorMessage.textContent = '', 3000); // Clear message after 3 seconds
-            }
+            selectedExpirationDuration = button.dataset.duration;
         });
     });
 
+    // --- Modal Done Button ---
+    modalDoneButton.addEventListener('click', async () => {
+        modalErrorMessage.textContent = 'Updating expiration...';
+
+        try {
+            // Send the chosen expiration to backend to update for the current file
+            const response = await fetch('/api/upload', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    code: currentShareCode,
+                    expiration: selectedExpirationDuration,
+                    updateExpiration: true
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                modalErrorMessage.textContent = 'Expiration set!';
+                // Now transition to the final file view page
+                expirationModal.style.display = 'none'; // Hide modal
+                fileViewSection.style.display = 'block'; // Show file view
+
+                finalFileNameDisplay.textContent = modalFileNameDisplay.textContent;
+                finalShareCodeDisplay.textContent = modalShareCodeDisplay.textContent;
+                finalDownloadButton.onclick = () => window.open(currentFileUrl, '_blank');
+                fileExpiryInfo.textContent = `This file will expire in ${selectedExpirationDuration}.`;
+
+            } else {
+                modalErrorMessage.textContent = `Failed to set expiration: ${data.message || 'Unknown error'}`;
+            }
+        } catch (error) {
+            console.error('Error setting expiration:', error);
+            modalErrorMessage.textContent = 'Network error during expiration update.';
+        } finally {
+            setTimeout(() => modalErrorMessage.textContent = '', 3000); // Clear message
+        }
+    });
 
     // --- Code Retrieval ---
     retrieveButton.addEventListener('click', () => {
@@ -198,15 +183,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     async function retrieveFile() {
-        const code = codeInput.value.trim().toUpperCase(); // Codes are 5 letters, uppercase
-        mainErrorMessage.textContent = ''; // Clear previous errors
+        const code = codeInput.value.trim().toUpperCase();
+        mainErrorMessage.textContent = '';
 
         if (code.length !== 5) {
             mainErrorMessage.textContent = 'Please enter a 5-letter code.';
             return;
         }
 
-        // You might show a loading spinner here
         mainErrorMessage.textContent = 'Retrieving file...';
 
         try {
@@ -220,16 +204,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     mainErrorMessage.textContent = '';
                     currentShareCode = code;
                     currentFileUrl = data.fileUrl;
-                    fileNameDisplay.textContent = data.filename;
-                    shareCodeDisplay.textContent = code;
-                    downloadButton.onclick = () => window.open(currentFileUrl, '_blank');
 
-                    // Switch to file display section
-                    mainUploadSection.style.display = 'none';
-                    fileDisplaySection.style.display = 'block';
+                    // Directly go to file view if retrieved successfully
+                    mainSection.style.display = 'none';
+                    fileViewSection.style.display = 'block';
 
-                    // Reset expiration button highlights - we don't know original selection
-                    expirationButtons.forEach(btn => btn.classList.remove('selected'));
+                    finalFileNameDisplay.textContent = data.filename;
+                    finalShareCodeDisplay.textContent = code;
+                    finalDownloadButton.onclick = () => window.open(currentFileUrl, '_blank');
+                    fileExpiryInfo.textContent = `This file will expire on ${new Date(data.expirationTimestamp).toLocaleString()}.`;
                 }
             } else {
                 mainErrorMessage.textContent = `Retrieval failed: ${data.message || 'File not found or invalid code.'}`;
@@ -241,17 +224,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Back to Main Button ---
-    backToMainButton.addEventListener('click', () => {
-        fileDisplaySection.style.display = 'none';
-        mainUploadSection.style.display = 'block';
+    backToMainFromFileViewButton.addEventListener('click', () => {
+        fileViewSection.style.display = 'none';
+        mainSection.style.display = 'block';
         fileInput.value = ''; // Clear file input
         codeInput.value = ''; // Clear code input
         mainErrorMessage.textContent = ''; // Clear messages
-        fileDisplayErrorMessage.textContent = '';
+        modalErrorMessage.textContent = '';
         currentFileUrl = '';
         currentShareCode = '';
-        selectedExpiration = '1d'; // Reset default expiration
+        selectedExpirationDuration = '1d'; // Reset default expiration
         expirationButtons.forEach(btn => btn.classList.remove('selected'));
         document.querySelector(`.exp-button[data-duration="1d"]`).classList.add('selected'); // Highlight default
     });
+
+    // Initialize the default expiration button highlight
+    document.querySelector(`.exp-button[data-duration="1d"]`).classList.add('selected');
 });

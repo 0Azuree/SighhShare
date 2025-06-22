@@ -5,7 +5,7 @@
   "main": "upload.js",
   "dependencies": {
     "firebase-admin": "^12.0.0",
-    "cloudinary": "^1.x.x"  <-- ADD THIS LINE (use latest stable version from npmjs.com/package/cloudinary)
+    "cloudinary": "^1.x.x"  <-- ADD OR CONFIRM THIS LINE (check npmjs.com/package/cloudinary for the absolute latest stable version, e.g., ^1.40.0)
   },
   "scripts": {
     "start": "netlify dev"

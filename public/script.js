@@ -86,32 +86,53 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        mainErrorMessage.textContent = 'Preparing upload...';
+        mainErrorMessage.textContent = 'Preparing upload signature...';
 
         try {
-            // --- IMPORTANT FOR PRODUCTION: REAL FILE STORAGE INTEGRATION ---
-            // In a real application, you would perform these steps:
-            // 1. Call a Netlify Function to get a secure upload signature/URL from Cloudinary/AWS S3.
-            //    Example: await fetch('/api/get-upload-signature', { method: 'POST', ... });
-            // 2. Use that signature/URL to DIRECTLY upload the actual 'file' object from the browser
-            //    to Cloudinary/AWS S3. This bypasses your Netlify function for large file transfer.
-            //    Example: fetch('https://api.cloudinary.com/...', { method: 'POST', body: formData });
-            // 3. The cloud storage service will return the final public URL of the uploaded file.
-            //    You will use THAT URL in the 'fileUrl' parameter below.
+            // Step 1: Get Upload Signature from your Netlify Function
+            const signatureResponse = await fetch('/api/get-upload-signature', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filename: file.name }) // Send filename to help generate public_id
+            });
+            const signatureData = await signatureResponse.json();
 
-            // --- FOR DEMO/TESTING WITH FIREBASE: Using a dummy file URL ---
-            // This dummy URL allows you to test the Firebase database integration
-            // without setting up a full cloud file storage service yet.
-            const dummyFileUrl = `https://mock-cloud-storage.com/${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+            if (!signatureResponse.ok) {
+                throw new Error(`Failed to get upload signature: ${signatureData.message || 'Unknown error'}`);
+            }
 
-            // Send file metadata (including dummy URL for now) to your Netlify function
-            mainErrorMessage.textContent = 'Uploading file metadata...';
+            mainErrorMessage.textContent = 'Uploading file to Cloudinary...';
+
+            // Step 2: Directly Upload File to Cloudinary using the signature
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('api_key', signatureData.api_key);
+            formData.append('timestamp', signatureData.timestamp);
+            formData.append('signature', signatureData.signature);
+            formData.append('folder', signatureData.folder);
+            formData.append('public_id', signatureData.public_id);
+            // You can add an upload_preset here if using unsigned uploads, but we're using signed.
+
+            const cloudinaryUploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${signatureData.cloudname}/upload`, {
+                method: 'POST',
+                body: formData
+            });
+            const cloudinaryData = await cloudinaryUploadResponse.json();
+
+            if (!cloudinaryUploadResponse.ok) {
+                throw new Error(`Cloudinary upload failed: ${cloudinaryData.error?.message || 'Unknown error'}`);
+            }
+
+            const finalFileUrl = cloudinaryData.secure_url; // This is the real public URL of your uploaded file
+
+            // Step 3: Send file metadata (including real file URL) to your Netlify function
+            mainErrorMessage.textContent = 'Storing file metadata...';
             const response = await fetch('/api/upload', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     filename: file.name,
-                    fileUrl: dummyFileUrl, // This will be the REAL URL from cloud storage in production
+                    fileUrl: finalFileUrl, // Now sending the REAL Cloudinary URL
                     expiration: selectedExpirationDuration // Initial default expiration
                 })
             });
@@ -121,7 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 mainErrorMessage.textContent = '';
                 currentShareCode = data.code;
-                currentFileUrl = data.fileUrl; // This will be the dummy URL (or real URL in production)
+                currentFileUrl = data.fileUrl; // This will now be the real Cloudinary URL
 
                 // Populate modal and show it
                 modalFileNameDisplay.textContent = data.filename;
@@ -132,8 +153,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 mainErrorMessage.textContent = `Upload failed: ${data.message || 'Unknown error'}`;
             }
         } catch (error) {
-            console.error('Error during upload:', error);
-            mainErrorMessage.textContent = 'Network error or server issue during upload.';
+            console.error('Error during full upload process:', error);
+            mainErrorMessage.textContent = `Upload failed: ${error.message}`;
         }
     }
 
@@ -184,9 +205,9 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
             // Clear message after a short delay, or immediately if successful.
             // If it's an error, maybe keep it visible longer.
-            if (response && response.ok) { // Check if response was successful
-                setTimeout(() => modalErrorMessage.textContent = '', 2000);
-            }
+            // Note: 'response' might not be defined if an error occurs before the fetch completes
+            // This is a basic check; robust error handling would ensure 'response' exists or handle its absence.
+            setTimeout(() => modalErrorMessage.textContent = '', 2000);
         }
     });
 
@@ -222,7 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     mainErrorMessage.textContent = '';
                     currentShareCode = code;
-                    currentFileUrl = data.fileUrl; // This will be the dummy URL (or real URL in production)
+                    currentFileUrl = data.fileUrl; // This will now be the real Cloudinary URL
 
                     // Directly go to file view if retrieved successfully
                     mainSection.style.display = 'none';

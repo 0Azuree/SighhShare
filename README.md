@@ -1,7 +1,5 @@
 # SighhShare
 
-![SighhShare Screenshot Placeholder](https://via.placeholder.com/800x400?text=SighhShare+App+Screenshot)
-*Replace this placeholder with a real screenshot of your application!*
 
 SighhShare is a modern, privacy-focused web application that facilitates temporary file sharing. Users can upload files, receive a unique shareable code, and define an expiration period for the content. It's built with a fully serverless architecture, ensuring scalability, cost-efficiency, and ease of deployment.
 

@@ -1,21 +1,21 @@
 :root {
-    --dark-bg: #1a1a2e;
-    --dark-card-bg: #2b2b4d;
+    /* Dark Theme */
+    --dark-primary: #121212; /* Black */
+    --dark-accent: #333333;  /* Dark Grey */
     --dark-text: #e0e0e0;
-    --dark-accent: #e94560;
-    --dark-button-bg: #0f3460;
-    --dark-button-hover: #16213e;
-    --dark-input-bg: #16213e;
-    --dark-input-border: #0f3460;
+    --dark-button-bg: #333333;
+    --dark-button-hover: #555555;
+    --dark-input-bg: #222222;
+    --dark-input-border: #444444;
 
-    --light-bg: #f0f2f5;
-    --light-card-bg: #ffffff;
-    --light-text: #333;
-    --light-accent: #d90429;
-    --light-button-bg: #007bff;
-    --light-button-hover: #0056b3;
-    --light-input-bg: #f9f9f9;
-    --light-input-border: #ccc;
+    /* Light Theme */
+    --light-primary: #ffffff; /* White */
+    --light-accent: #b0b0b0;  /* Light Grey */
+    --light-text: #333333;
+    --light-button-bg: #b0b0b0;
+    --light-button-hover: #909090;
+    --light-input-bg: #f5f5f5;
+    --light-input-border: #cccccc;
 }
 
 body {
@@ -28,13 +28,14 @@ body {
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* Theme application */
 body.dark-theme {
-    background-color: var(--dark-bg);
+    background-color: var(--dark-primary);
     color: var(--dark-text);
 }
 
 body.light-theme {
-    background-color: var(--light-bg);
+    background-color: var(--light-primary);
     color: var(--light-text);
 }
 
@@ -43,7 +44,7 @@ header {
     justify-content: space-between;
     align-items: center;
     padding: 20px 40px;
-    background-color: var(--dark-card-bg); /* Stays dark for header */
+    background-color: var(--dark-accent); /* Header always dark for contrast */
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
     color: var(--dark-text);
 }
@@ -51,7 +52,7 @@ header {
 header h1 {
     margin: 0;
     font-size: 1.8em;
-    color: var(--dark-accent);
+    color: var(--dark-text);
 }
 
 #theme-toggle {
@@ -71,11 +72,13 @@ main {
     flex-grow: 1;
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start; /* Align items to top to allow space for code box below */
     padding: 20px;
+    flex-direction: column; /* Allow vertical stacking */
+    align-items: center; /* Center horizontally */
 }
 
-#main-upload-section, #file-display-section {
+#main-section, #file-view-section {
     width: 100%;
     max-width: 600px;
     padding: 30px;
@@ -83,16 +86,17 @@ main {
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     text-align: center;
     transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    margin-bottom: 20px; /* Space between main section and potentially other elements */
 }
 
-body.dark-theme #main-upload-section,
-body.dark-theme #file-display-section {
-    background-color: var(--dark-card-bg);
+body.dark-theme #main-section,
+body.dark-theme #file-view-section {
+    background-color: var(--dark-accent);
 }
 
-body.light-theme #main-upload-section,
-body.light-theme #file-display-section {
-    background-color: var(--light-card-bg);
+body.light-theme #main-section,
+body.light-theme #file-view-section {
+    background-color: var(--light-accent);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
@@ -102,8 +106,10 @@ body.light-theme #file-display-section {
     border-radius: 10px;
     padding: 40px 20px;
     cursor: pointer;
-    margin-bottom: 25px;
+    margin-bottom: 25px; /* Space before the code input section */
     transition: border-color 0.3s ease;
+    width: calc(100% - 40px); /* Adjust for padding */
+    box-sizing: border-box; /* Include padding in width */
 }
 
 body.dark-theme #upload-box {
@@ -121,27 +127,29 @@ body.light-theme #upload-box {
 .upload-icon-container .material-icons {
     font-size: 80px;
     margin-bottom: 15px;
-    color: var(--dark-accent);
-}
-body.light-theme .upload-icon-container .material-icons {
-    color: var(--light-accent);
+    color: var(--dark-text); /* Icon color matches text */
 }
 
 .upload-icon-container p {
     font-size: 1.1em;
-    margin-bottom: 30px;
+    margin-bottom: 0;
 }
 
-/* Code Input */
-.code-input-container {
+/* Code Input Section (moved out of upload-box) */
+.code-input-section {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 10px;
-    margin-top: 20px;
+    width: 100%;
+    max-width: 600px; /* Match main section width */
+    margin-top: 0; /* Already handled by upload-box margin-bottom */
+    flex-wrap: wrap; /* Allow wrapping on small screens */
+    padding: 0 30px; /* Match main section padding */
+    box-sizing: border-box;
 }
 
-.code-input-container label {
+.code-input-section label {
     font-weight: bold;
     font-size: 1.1em;
 }
@@ -170,10 +178,10 @@ body.light-theme #code-input {
 
 #code-input:focus {
     outline: none;
-    box-shadow: 0 0 0 3px var(--dark-accent);
+    box-shadow: 0 0 0 3px var(--dark-text);
 }
 body.light-theme #code-input:focus {
-    box-shadow: 0 0 0 3px var(--light-accent);
+    box-shadow: 0 0 0 3px var(--light-text);
 }
 
 #retrieve-button {
@@ -189,6 +197,7 @@ body.light-theme #code-input:focus {
 
 body.light-theme #retrieve-button {
     background-color: var(--light-button-bg);
+    color: var(--light-text);
 }
 
 #retrieve-button:hover {
@@ -198,28 +207,57 @@ body.light-theme #retrieve-button:hover {
     background-color: var(--light-button-hover);
 }
 
-/* File Display Section */
-.file-details-card {
-    padding: 30px;
-    border-radius: 12px;
+/* Modal Overlay */
+.modal-overlay {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1000; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgba(0, 0, 0, 0.7); /* Black w/ opacity */
+    justify-content: center;
+    align-items: center;
 }
 
-#file-name-display {
+.modal-content {
+    background-color: var(--dark-accent);
+    margin: auto;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+    width: 90%;
+    max-width: 500px;
+    text-align: center;
+    position: relative; /* For absolute positioning of close button if needed */
+}
+body.light-theme .modal-content {
+    background-color: var(--light-accent);
+}
+
+.modal-content h2 {
     font-size: 1.8em;
     margin-bottom: 15px;
-    color: var(--dark-accent);
-    word-break: break-word; /* For long file names */
+    color: var(--dark-text);
+    word-break: break-word;
 }
-body.light-theme #file-name-display {
-    color: var(--light-accent);
+body.light-theme .modal-content h2 {
+    color: var(--light-text);
 }
 
-#share-code-display {
-    font-size: 1.5em;
-    color: var(--dark-accent);
+.modal-content p {
+    font-size: 1.1em;
+    margin-bottom: 10px;
 }
-body.light-theme #share-code-display {
-    color: var(--light-accent);
+
+#modal-share-code-display {
+    font-size: 1.5em;
+    color: var(--dark-text);
+}
+body.light-theme #modal-share-code-display {
+    color: var(--light-text);
 }
 
 .expiration-options {
@@ -246,6 +284,7 @@ body.light-theme #share-code-display {
 body.light-theme .exp-button {
     border-color: var(--light-button-bg);
     background-color: var(--light-button-bg);
+    color: var(--light-text);
 }
 
 .exp-button:hover {
@@ -258,51 +297,108 @@ body.light-theme .exp-button:hover {
 }
 
 .exp-button.selected {
-    background-color: var(--dark-accent);
-    border-color: var(--dark-accent);
-    box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.5);
+    background-color: var(--dark-text); /* Highlight with text color */
+    border-color: var(--dark-text);
+    box-shadow: 0 0 0 3px rgba(224, 224, 224, 0.5);
+    color: var(--dark-accent); /* Text on highlight should be accent color */
 }
 body.light-theme .exp-button.selected {
-    background-color: var(--light-accent);
-    border-color: var(--light-accent);
-    box-shadow: 0 0 0 3px rgba(217, 4, 41, 0.5);
+    background-color: var(--light-text); /* Highlight with text color */
+    border-color: var(--light-text);
+    box-shadow: 0 0 0 3px rgba(51, 51, 51, 0.5);
+    color: var(--light-accent); /* Text on highlight should be accent color */
 }
 
-
-#download-button, #back-to-main {
+#modal-done-button {
     padding: 15px 30px;
     border: none;
     border-radius: 8px;
-    background-color: var(--dark-accent);
+    background-color: var(--dark-button-bg);
     color: white;
     font-size: 1.1em;
     cursor: pointer;
     margin-top: 20px;
     transition: background-color 0.3s ease;
 }
-body.light-theme #download-button,
-body.light-theme #back-to-main {
-    background-color: var(--light-accent);
+body.light-theme #modal-done-button {
+    background-color: var(--light-button-bg);
+    color: var(--light-text);
 }
 
-#download-button:hover, #back-to-main:hover {
-    opacity: 0.9;
+#modal-done-button:hover {
+    background-color: var(--dark-button-hover);
+}
+body.light-theme #modal-done-button:hover {
+    background-color: var(--light-button-hover);
+}
+
+/* Final File View Page */
+.file-details-card {
+    padding: 30px;
+    border-radius: 12px;
+}
+
+#final-file-name-display {
+    font-size: 1.8em;
+    margin-bottom: 15px;
+    color: var(--dark-text);
+    word-break: break-word;
+}
+body.light-theme #final-file-name-display {
+    color: var(--light-text);
+}
+
+#final-share-code-display {
+    font-size: 1.5em;
+    color: var(--dark-text);
+}
+body.light-theme #final-share-code-display {
+    color: var(--light-text);
+}
+
+#final-download-button, #back-to-main-from-file-view {
+    padding: 15px 30px;
+    border: none;
+    border-radius: 8px;
+    background-color: var(--dark-button-bg);
+    color: white;
+    font-size: 1.1em;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: background-color 0.3s ease;
+}
+body.light-theme #final-download-button,
+body.light-theme #back-to-main-from-file-view {
+    background-color: var(--light-button-bg);
+    color: var(--light-text);
+}
+
+#final-download-button:hover, #back-to-main-from-file-view:hover {
+    background-color: var(--dark-button-hover);
+}
+body.light-theme #final-download-button:hover,
+body.light-theme #back-to-main-from-file-view:hover {
+    background-color: var(--light-button-hover);
+}
+
+.file-expiry-info {
+    margin-top: 15px;
+    font-style: italic;
+    font-size: 0.9em;
 }
 
 .error-message {
-    color: var(--dark-accent);
+    color: #ff6347; /* Tomato red for errors */
     font-weight: bold;
     margin-top: 15px;
     font-size: 0.9em;
 }
-body.light-theme .error-message {
-    color: var(--light-accent);
-}
+
 
 footer {
     text-align: center;
     padding: 20px;
-    background-color: var(--dark-card-bg); /* Stays dark for footer */
+    background-color: var(--dark-accent); /* Footer always dark for contrast */
     color: var(--dark-text);
     box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
     margin-top: auto;
@@ -320,19 +416,20 @@ footer {
     main {
         padding: 10px;
     }
-    #main-upload-section, #file-display-section {
+    #main-section, #file-view-section {
         padding: 20px;
     }
-    .code-input-container {
+    .code-input-section {
         flex-direction: column;
         gap: 15px;
+        padding: 0 20px;
     }
     .exp-button {
         display: block;
         width: calc(100% - 16px);
         margin: 10px 8px;
     }
-    #download-button, #back-to-main {
+    #modal-done-button, #final-download-button, #back-to-main-from-file-view {
         width: 100%;
         padding: 12px 20px;
     }

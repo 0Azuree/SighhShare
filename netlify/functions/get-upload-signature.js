@@ -14,28 +14,20 @@ exports.handler = async (event, context) => {
     }
 
     try {
-        // Optional: You can send filename from frontend to help generate public_id
-        const { filename } = JSON.parse(event.body || '{}'); // Handle empty body gracefully
+        const body = JSON.parse(event.body);
+        const filename = body.filename || 'file'; // Use provided filename or default
 
-        // Generate a public_id for Cloudinary. We can derive it from the filename.
-        // Cloudinary requires unique public_ids, so add a timestamp/random string.
-        const timestamp = Math.round((new Date).getTime() / 1000);
-        // Simple public ID: remove extension, replace spaces, append timestamp
-        let publicId = '';
-        if (filename) {
-            publicId = `<span class="math-inline">\{filename\.split\('\.'\)\.slice\(0, \-1\)\.join\('\.'\)\}\_</span>{timestamp}`.replace(/[^a-zA-Z0-9_-]/g, ''); // Sanitize public ID
-        } else {
-            publicId = `file_${timestamp}`; // Fallback if no filename provided
-        }
+        // Generate a unique public_id based on a timestamp and filename
+        // This ensures unique filenames in Cloudinary
+        const timestamp = Date.now();
+        const public_id = `sighhshare/${filename.replace(/[^a-zA-Z0-9-.]/g, '_')}-${timestamp}`;
 
-
+        // Parameters for signed upload
         const options = {
             timestamp: timestamp,
-            folder: 'sighhshare_uploads', // Optional: Organize uploads in a specific folder in Cloudinary
-            public_id: publicId,
-            // Add any other upload options here, e.g., tags, transformations, etc.
-            // max_bytes: 10 * 1024 * 1024, // Example: 10MB limit (10MB)
-            // resource_type: 'auto', // Cloudinary will auto-detect type
+            folder: 'sighhshare_uploads', // Your desired folder in Cloudinary
+            public_id: public_id,
+            // Add any other upload parameters you need, e.g., tags, transformations
         };
 
         // Generate the signature
@@ -49,11 +41,15 @@ exports.handler = async (event, context) => {
                 cloudname: cloudinary.config().cloud_name,
                 api_key: cloudinary.config().api_key,
                 folder: options.folder,
-                public_id: options.public_id // Send public_id back to client
+                public_id: public_id
             })
         };
+
     } catch (error) {
-        console.error('Error generating upload signature:', error);
-        return { statusCode: 500, body: JSON.stringify({ message: 'Internal Server Error', error: error.message }) };
+        console.error('Error generating Cloudinary signature:', error);
+        return {
+            statusCode: 500,
+            body: JSON.stringify({ message: `Error generating upload signature: ${error.message}` })
+        };
     }
 };

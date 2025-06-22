@@ -4,7 +4,12 @@ const admin = require('firebase-admin');
 // This part needs to happen only once across cold starts
 if (!admin.apps.length) {
     try {
-        admin.initializeApp({
+        // TEMPORARY DEBUGGING - REMOVE AFTER USE!
+console.log("Firebase Private Key (first 50 chars):", process.env.FIREBASE_PRIVATE_KEY ? process.env.FIREBASE_PRIVATE_KEY.substring(0, 50) : "Not set");
+console.log("Firebase Private Key (last 50 chars):", process.env.FIREBASE_PRIVATE_KEY ? process.env.FIREBASE_PRIVATE_KEY.slice(-50) : "Not set");
+console.log("Firebase Private Key Length:", process.env.FIREBASE_PRIVATE_KEY ? process.env.FIREBASE_PRIVATE_KEY.length : "Not set");
+// END TEMPORARY DEBUGGING
+admin.initializeApp({
             credential: admin.credential.cert({
                 type: process.env.FIREBASE_TYPE,
                 project_id: process.env.FIREBASE_PROJECT_ID,

@@ -86,17 +86,32 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        mainErrorMessage.textContent = 'Uploading file...';
+        mainErrorMessage.textContent = 'Preparing upload...';
 
         try {
-            // Simplified for demo: only sending filename.
-            // In a real app, you'd upload the file to cloud storage (e.g., S3) first,
-            // then send its resulting URL to the Netlify function.
+            // --- IMPORTANT FOR PRODUCTION: REAL FILE STORAGE INTEGRATION ---
+            // In a real application, you would perform these steps:
+            // 1. Call a Netlify Function to get a secure upload signature/URL from Cloudinary/AWS S3.
+            //    Example: await fetch('/api/get-upload-signature', { method: 'POST', ... });
+            // 2. Use that signature/URL to DIRECTLY upload the actual 'file' object from the browser
+            //    to Cloudinary/AWS S3. This bypasses your Netlify function for large file transfer.
+            //    Example: fetch('https://api.cloudinary.com/...', { method: 'POST', body: formData });
+            // 3. The cloud storage service will return the final public URL of the uploaded file.
+            //    You will use THAT URL in the 'fileUrl' parameter below.
+
+            // --- FOR DEMO/TESTING WITH FIREBASE: Using a dummy file URL ---
+            // This dummy URL allows you to test the Firebase database integration
+            // without setting up a full cloud file storage service yet.
+            const dummyFileUrl = `https://mock-cloud-storage.com/${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+
+            // Send file metadata (including dummy URL for now) to your Netlify function
+            mainErrorMessage.textContent = 'Uploading file metadata...';
             const response = await fetch('/api/upload', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     filename: file.name,
+                    fileUrl: dummyFileUrl, // This will be the REAL URL from cloud storage in production
                     expiration: selectedExpirationDuration // Initial default expiration
                 })
             });
@@ -106,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 mainErrorMessage.textContent = '';
                 currentShareCode = data.code;
-                currentFileUrl = data.fileUrl; // This will be the dummy URL from the backend
+                currentFileUrl = data.fileUrl; // This will be the dummy URL (or real URL in production)
 
                 // Populate modal and show it
                 modalFileNameDisplay.textContent = data.filename;
@@ -164,10 +179,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 modalErrorMessage.textContent = `Failed to set expiration: ${data.message || 'Unknown error'}`;
             }
         } catch (error) {
-            console.error('Error setting expiration:', error);
-            modalErrorMessage.textContent = 'Network error during expiration update.';
+                console.error('Error setting expiration:', error);
+                modalErrorMessage.textContent = 'Network error during expiration update.';
         } finally {
-            setTimeout(() => modalErrorMessage.textContent = '', 3000); // Clear message
+            // Clear message after a short delay, or immediately if successful.
+            // If it's an error, maybe keep it visible longer.
+            if (response && response.ok) { // Check if response was successful
+                setTimeout(() => modalErrorMessage.textContent = '', 2000);
+            }
         }
     });
 
@@ -203,7 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     mainErrorMessage.textContent = '';
                     currentShareCode = code;
-                    currentFileUrl = data.fileUrl;
+                    currentFileUrl = data.fileUrl; // This will be the dummy URL (or real URL in production)
 
                     // Directly go to file view if retrieved successfully
                     mainSection.style.display = 'none';
@@ -238,6 +257,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelector(`.exp-button[data-duration="1d"]`).classList.add('selected'); // Highlight default
     });
 
-    // Initialize the default expiration button highlight
+    // Initialize the default expiration button highlight on load
     document.querySelector(`.exp-button[data-duration="1d"]`).classList.add('selected');
 });

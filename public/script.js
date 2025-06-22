@@ -105,13 +105,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Step 2: Directly Upload File to Cloudinary using the signature
             const formData = new FormData();
-            formData.append('file', file);
+            formData.append('file', file); // The actual file object
             formData.append('api_key', signatureData.api_key);
             formData.append('timestamp', signatureData.timestamp);
             formData.append('signature', signatureData.signature);
             formData.append('folder', signatureData.folder);
             formData.append('public_id', signatureData.public_id);
-            // You can add an upload_preset here if using unsigned uploads, but we're using signed.
+            // Note: No upload_preset needed here as we are using signed uploads
 
             const cloudinaryUploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${signatureData.cloudname}/upload`, {
                 method: 'POST',
@@ -120,10 +120,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const cloudinaryData = await cloudinaryUploadResponse.json();
 
             if (!cloudinaryUploadResponse.ok) {
+                // Check for Cloudinary specific error message
                 throw new Error(`Cloudinary upload failed: ${cloudinaryData.error?.message || 'Unknown error'}`);
             }
 
-            const finalFileUrl = cloudinaryData.secure_url; // This is the real public URL of your uploaded file
+            const finalFileUrl = cloudinaryData.secure_url; // This is the real public URL of your uploaded file!
 
             // Step 3: Send file metadata (including real file URL) to your Netlify function
             mainErrorMessage.textContent = 'Storing file metadata...';
@@ -205,8 +206,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
             // Clear message after a short delay, or immediately if successful.
             // If it's an error, maybe keep it visible longer.
-            // Note: 'response' might not be defined if an error occurs before the fetch completes
-            // This is a basic check; robust error handling would ensure 'response' exists or handle its absence.
             setTimeout(() => modalErrorMessage.textContent = '', 2000);
         }
     });

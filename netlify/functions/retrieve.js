@@ -21,7 +21,7 @@ if (!admin.apps.length) {
             })
         });
     } catch (error) {
-        console.error("Firebase Admin SDK initialization error:", error);
+        console.error("Firebase Admin SDK initialization error in retrieve.js:", error);
         // If Firebase init fails here, subsequent Firestore operations will also fail.
         // This is where incorrect Firebase environment variables would show up.
         // It's crucial for the environment variables to be exactly correct.

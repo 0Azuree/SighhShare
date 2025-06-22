@@ -14,35 +14,44 @@
     </header>
 
     <main>
-        <section id="main-upload-section">
+        <section id="main-section">
             <div id="upload-box">
                 <div class="upload-icon-container">
                     <span class="material-icons upload-arrow">file_upload</span>
                     <p>Click or Drag & Drop to Upload</p>
                     <input type="file" id="file-input" accept="*/*" style="display: none;">
                 </div>
-                <div class="code-input-container">
-                    <label for="code-input">Code:</label>
-                    <input type="text" id="code-input" placeholder="Enter 5-letter code" maxlength="5">
-                    <button id="retrieve-button">Go</button>
-                </div>
             </div>
-            <p class="error-message" id="main-error-message"></p>
+            <div class="code-input-section">
+                <label for="code-input">Code:</label>
+                <input type="text" id="code-input" placeholder="Enter 5-letter code" maxlength="5">
+                <button id="retrieve-button">Go</button>
+                <p class="error-message" id="main-error-message"></p>
+            </div>
         </section>
 
-        <section id="file-display-section" style="display: none;">
-            <div class="file-details-card">
-                <h2 id="file-name-display"></h2>
-                <p>Your sharing code is: <strong id="share-code-display"></strong></p>
+        <div id="expiration-modal" class="modal-overlay">
+            <div class="modal-content">
+                <h2 id="modal-file-name-display"></h2>
+                <p>Your sharing code is: <strong id="modal-share-code-display"></strong></p>
                 <div class="expiration-options">
-                    <p>This page will last for:</p>
-                    <button class="exp-button" data-duration="1hr">1 Hour</button>
+                    <p>How long will this page last?</p>
+                    <button class="exp-button selected" data-duration="1d">1 Day</button>
                     <button class="exp-button" data-duration="5hr">5 Hours</button>
-                    <button class="exp-button" data-duration="1d">1 Day</button>
+                    <button class="exp-button" data-duration="1hr">1 Hour</button>
                 </div>
-                <button id="download-button">Download File</button>
-                <p class="error-message" id="file-display-error-message"></p>
-                <button id="back-to-main">Back to Upload</button>
+                <button id="modal-done-button">Done</button>
+                <p class="error-message" id="modal-error-message"></p>
+            </div>
+        </div>
+
+        <section id="file-view-section" style="display: none;">
+            <div class="file-details-card">
+                <h2 id="final-file-name-display"></h2>
+                <p>Sharing code: <strong id="final-share-code-display"></strong></p>
+                <button id="final-download-button">Download File</button>
+                <p class="file-expiry-info" id="file-expiry-info"></p>
+                <button id="back-to-main-from-file-view">Back to Upload</button>
             </div>
         </section>
     </main>

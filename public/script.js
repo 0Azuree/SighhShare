@@ -172,9 +172,11 @@ document.addEventListener('DOMContentLoaded', () => {
     modalDoneButton.addEventListener('click', async () => {
         modalErrorMessage.textContent = 'Updating expiration...';
 
+        // Declare response variable outside try block to ensure it's always defined
+        let response;
         try {
             // Send the chosen expiration to backend to update for the current file
-            const response = await fetch('/api/upload', {
+            response = await fetch('/api/upload', { // Assign to the 'response' variable declared above
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -204,9 +206,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error('Error setting expiration:', error);
                 modalErrorMessage.textContent = 'Network error during expiration update.';
         } finally {
-            // Clear message after a short delay, or immediately if successful.
-            // If it's an error, maybe keep it visible longer.
-            setTimeout(() => modalErrorMessage.textContent = '', 2000);
+            // Always clear message after a short delay, regardless of success,
+            // as the error message would have been set in the catch block.
+            setTimeout(() => {
+                modalErrorMessage.textContent = '';
+                // If it was an error, you might want to re-show the modal for user to retry,
+                // or ensure a persistent error message is shown.
+                // For simplicity now, we just clear it.
+            }, 2000);
         }
     });
 
